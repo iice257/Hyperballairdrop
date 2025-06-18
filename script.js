@@ -1,3 +1,15 @@
+function checkPassword() {
+  const input = document.getElementById('access-password').value;
+  const correctPassword = "HYPED";
+
+  if (input === correctPassword) {
+    document.getElementById('password-gate').style.display = 'none';
+    document.getElementById('protected-content').style.display = 'block';
+  } else {
+    document.getElementById('password-error').style.display = 'block';
+  }
+}
+
 window.addEventListener('DOMContentLoaded', () => {
   const allowedPassword = "HYPED";
   const entered = localStorage.getItem('access_granted');
