@@ -1,5 +1,5 @@
 window.addEventListener('DOMContentLoaded', () => {
-  const allowedPassword = "JACKPOT";
+  const allowedPassword = "HYPIO";
   const entered = localStorage.getItem('access_granted');
 
   if (entered !== 'true') {
