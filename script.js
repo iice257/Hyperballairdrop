@@ -1,34 +1,42 @@
-const SHEETDB_URL = "https://sheetdb.io/api/v1/sc2q0pto25o9m";
+// === Firebase Setup ===
+const firebaseConfig = {
+  apiKey: "AIzaSyAJBy7jZyd3T_wBKQDFCdFbEpv1BCsa6_Q",
+  authDomain: "hyperballairdrop.firebaseapp.com",
+  projectId: "hyperballairdrop",
+  storageBucket: "hyperballairdrop.firebasestorage.app",
+  messagingSenderId: "440984186405",
+  appId: "1:440984186405:web:3e20edb3bf3afa9617d9cc",
+  measurementId: "G-HEJDWTW364"
+};
 
-// Passwords + Limits
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+// === Passwords + Limits ===
 const PASSWORDS = {
-  "HBALL": null, // unlimited
-  "PAVILION": 10,
+  "HBALL": null,        // unlimited
   "ORDI": 30,
+  "PAVILION": 10,
   "AFRICANDAO": 40
 };
 
 let totalSubmissions = 0;
-let passwordUsed = null;
+let currentPassword = "";
 
-// Fetch submission count
+// === Fetch Submission Count from Firestore ===
 async function fetchSubmissionCount() {
-  try {
-    const res = await fetch(SHEETDB_URL);
-    const data = await res.json();
-    totalSubmissions = data.length;
+  const metaDoc = await db.collection("meta").doc("stats").get();
+  totalSubmissions = metaDoc.exists ? metaDoc.data().totalSubmissions || 0 : 0;
 
-    const countDisplay = document.getElementById("submission-count");
-    if (countDisplay)
-      countDisplay.textContent = `🔥 ${totalSubmissions} of 200 HYPEMEN already submitted`;
-  } catch (err) {
-    console.error("Error fetching submission count:", err);
+  const countDisplay = document.getElementById("submission-count");
+  if (countDisplay) {
+    countDisplay.textContent = `🔥 ${totalSubmissions} of 200 HYPEMEN already submitted`;
   }
 }
 
-// Password access
-function checkPassword() {
-  const input = document.getElementById('access-password').value.trim().toUpperCase();
+// === Password Gate ===
+async function checkPassword() {
+  const input = document.getElementById('access-password').value.toUpperCase();
   const error = document.getElementById('password-error');
 
   if (totalSubmissions >= 200) {
@@ -37,75 +45,109 @@ function checkPassword() {
     return;
   }
 
-  if (PASSWORDS.hasOwnProperty(input)) {
-    const maxUsage = PASSWORDS[input];
-    passwordUsed = input;
-
-    if (maxUsage !== null && totalSubmissions >= maxUsage) {
-      error.innerHTML = '<i class="fas fa-lock"></i> This password has expired.';
-      error.classList.remove("hidden");
-      return;
-    }
-
-    localStorage.setItem("access_granted", "true");
-    localStorage.setItem("access_password", input);
-    document.getElementById("password-gate").style.display = "none";
-    document.getElementById("protected-content").style.display = "block";
-  } else {
-    error.innerHTML = '<i class="fas fa-exclamation-circle"></i> Incorrect password.';
+  if (!Object.keys(PASSWORDS).includes(input)) {
+    error.innerHTML = '<i class="fas fa-exclamation-circle"></i> Invalid password.';
     error.classList.remove("hidden");
+    return;
   }
+
+  // Check usage limit (if any)
+  const doc = await db.collection("passwords").doc(input).get();
+  const used = doc.exists ? doc.data().used || 0 : 0;
+  const limit = PASSWORDS[input];
+
+  if (limit !== null && used >= limit) {
+    error.innerHTML = '<i class="fas fa-ban"></i> Password expired: usage limit reached.';
+    error.classList.remove("hidden");
+    return;
+  }
+
+  currentPassword = input;
+  localStorage.setItem("access_granted", "true");
+  localStorage.setItem("used_password", currentPassword);
+  document.getElementById("password-gate").style.display = "none";
+  document.getElementById("protected-content").style.display = "block";
 }
 
-// Form logic
-function initWalletForm() {
+// === Submit Wallet to Firestore ===
+async function submitWallet(wallet, userAgent) {
+  const userNumber = totalSubmissions + 1;
+  const timestamp = new Date().toISOString();
+
+  // Save to Firestore
+  await db.collection("wallets").add({
+    wallet,
+    timestamp,
+    userAgent,
+    password: currentPassword,
+    position: userNumber
+  });
+
+  // Update total count
+  await db.collection("meta").doc("stats").set({ totalSubmissions: userNumber });
+
+  // Increment password usage
+  if (currentPassword !== "HBALL") {
+    const pwRef = db.collection("passwords").doc(currentPassword);
+    await pwRef.set({ used: firebase.firestore.FieldValue.increment(1) }, { merge: true });
+  }
+
+  return userNumber;
+}
+
+// === DOMContentLoaded Logic ===
+window.addEventListener("DOMContentLoaded", async () => {
+  await fetchSubmissionCount();
+
   const form = document.getElementById("airdrop-form");
   const feedback = document.getElementById("feedback");
   const message = feedback.querySelector(".message");
   const spinner = feedback.querySelector(".spinner");
   const tweetBtn = document.getElementById("tweet-btn");
   const walletInput = document.getElementById("wallet");
-
   const ua = navigator.userAgent;
-  const now = () => new Date().toISOString();
+
+  currentPassword = localStorage.getItem("used_password") || "";
+  if (localStorage.getItem("access_granted") === "true") {
+    document.getElementById("password-gate").style.display = "none";
+    document.getElementById("protected-content").style.display = "block";
+  }
 
   if (localStorage.getItem("wallet_submitted") === "true") {
     const userNumber = localStorage.getItem("wallet_number");
     form.style.display = "none";
     feedback.classList.remove("hidden");
     message.innerHTML = `<i class="fas fa-circle-check"></i> Welcome back, Hypeman #${userNumber}. Your wallet was already submitted.`;
-    tweetBtn.classList.remove("hidden");
     return;
   }
 
-  form.addEventListener("submit", (e) => {
+  form.addEventListener("submit", async (e) => {
     e.preventDefault();
-
     const wallet = walletInput.value.trim();
     const isValid = wallet.length >= 12 && wallet.startsWith("0x");
 
     feedback.classList.remove("hidden");
+    message.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Verifying wallet...`;
     spinner.classList.remove("hidden");
     tweetBtn.classList.add("hidden");
-    message.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Verifying wallet...`;
 
-    setTimeout(() => {
+    setTimeout(async () => {
       spinner.classList.add("hidden");
 
       if (isValid) {
-        const userNumber = totalSubmissions + 1;
-        message.innerHTML = `<i class="fas fa-check-circle"></i> Wallet submitted! You’re Hypeman #${userNumber}.<br><strong>Check back soon to claim your HYPEMAN NFT.</strong>`;
+        const userNumber = await submitWallet(wallet, ua);
+        totalSubmissions++;
+
+        message.innerHTML = `<i class="fas fa-check-circle"></i> Wallet submitted! You’re Hypeman #${userNumber}. Check back soon to claim your <strong>HYPEMAN NFT</strong>.`;
         tweetBtn.classList.remove("hidden");
 
         localStorage.setItem("wallet_submitted", "true");
         localStorage.setItem("wallet_value", wallet);
         localStorage.setItem("wallet_number", userNumber);
         form.style.display = "none";
-
-        logToSheet({ wallet, timestamp: now(), userAgent: ua, status: "success", passwordUsed });
       } else {
         message.innerHTML = `<i class="fas fa-times-circle"></i> Invalid wallet. Please input valid wallet address.`;
-        logToSheet({ wallet, timestamp: now(), userAgent: ua, status: "fail", passwordUsed });
+        tweetBtn.classList.add("hidden");
         setTimeout(() => feedback.classList.add("hidden"), 6000);
       }
     }, 1500);
@@ -116,41 +158,41 @@ function initWalletForm() {
     const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweet)}`;
     window.open(url, "_blank");
   });
-}
 
-// Submit to SheetDB
-function logToSheet(data) {
-  fetch(SHEETDB_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ data: [data] })
-  }).catch(err => console.error("SheetDB error:", err));
-}
+  // Press Enter to unlock
+  const passwordInput = document.getElementById("access-password");
+  if (passwordInput) {
+    passwordInput.addEventListener("keyup", (e) => {
+      if (e.key === "Enter") checkPassword();
+    });
+  }
+});
 
-// On Page Load
-window.addEventListener("DOMContentLoaded", async () => {
-  await fetchSubmissionCount();
+async function addPassword() {
+  const id = document.getElementById("new-pass").value.trim().toUpperCase();
+  const max = parseInt(document.getElementById("new-limit").value);
 
-  const passwordGate = document.getElementById("password-gate");
-  const protectedContent = document.getElementById("protected-content");
-
-  // Show the correct section based on localStorage
-  if (localStorage.getItem("access_granted") === "true") {
-    passwordGate.style.display = "none";
-    protectedContent.style.display = "block";
-  } else {
-    passwordGate.style.display = "block";
-    protectedContent.style.display = "none";
+  if (!id || isNaN(max)) {
+    alert("Enter a valid password and numeric limit.");
+    return;
   }
 
-  // Allow pressing Enter to submit password
-  const passwordInput = document.getElementById("access-password");
-  passwordInput.addEventListener("keypress", (e) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      checkPassword();
-    }
-  });
+  try {
+    await updateDoc(doc(db, "passwords", id), { max: max, used: 0 });
+    alert(`Password ${id} added or updated.`);
+  } catch (err) {
+    console.error("Failed to add/update password", err);
+  }
+}
 
-  initWalletForm();
-});
+async function revokePassword() {
+  const id = document.getElementById("revoke-pass").value.trim().toUpperCase();
+  if (!id) return alert("Enter a valid password to revoke");
+
+  try {
+    await updateDoc(doc(db, "passwords", id), { max: 0 });
+    alert(`Password ${id} revoked (set to 0).`);
+  } catch (err) {
+    console.error("Failed to revoke password", err);
+  }
+}
