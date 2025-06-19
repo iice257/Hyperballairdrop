@@ -1,19 +1,17 @@
 const SHEETDB_URL = "https://sheetdb.io/api/v1/sc2q0pto25o9m";
 
-// Passwords and usage caps
+// Passwords + Limits
 const PASSWORDS = {
-  "HBALL": null,         // unlimited
-  "PAVILLON": 10,
+  "HBALL": null, // unlimited
+  "PAVILION": 10,
   "ORDI": 30,
   "AFRICANDAO": 40
 };
 
 let totalSubmissions = 0;
+let passwordUsed = null;
 
-// --- UTILS ---
-const now = () => new Date().toISOString();
-const ua = navigator.userAgent;
-
+// Fetch submission count
 async function fetchSubmissionCount() {
   try {
     const res = await fetch(SHEETDB_URL);
@@ -21,56 +19,45 @@ async function fetchSubmissionCount() {
     totalSubmissions = data.length;
 
     const countDisplay = document.getElementById("submission-count");
-    if (countDisplay) {
+    if (countDisplay)
       countDisplay.textContent = `🔥 ${totalSubmissions} of 200 HYPEMEN already submitted`;
-    }
   } catch (err) {
     console.error("Error fetching submission count:", err);
   }
 }
 
-function logToSheet(data) {
-  fetch(SHEETDB_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ data: [data] })
-  }).catch(err => console.error("SheetDB error:", err));
-}
-
-// --- PASSWORD LOGIC ---
-function checkPassword(e) {
-  e.preventDefault();
-
-  const input = document.getElementById('access-password').value.trim().toLowerCase();
+// Password access
+function checkPassword() {
+  const input = document.getElementById('access-password').value.trim().toUpperCase();
   const error = document.getElementById('password-error');
-  const usageMap = JSON.parse(localStorage.getItem('password_usage')) || {};
-  const limit = PASSWORDS[input];
 
-  if (!(input in PASSWORDS)) {
-    error.innerHTML = '<i class="fas fa-exclamation-circle"></i> Incorrect password.';
+  if (totalSubmissions >= 200) {
+    error.innerHTML = '<i class="fas fa-lock"></i> Access closed: all slots filled.';
     error.classList.remove("hidden");
     return;
   }
 
-  if (limit !== null) {
-    const used = usageMap[input] || 0;
-    if (used >= limit) {
-      error.innerHTML = '<i class="fas fa-lock"></i> Access closed: this code has reached its usage limit.';
+  if (PASSWORDS.hasOwnProperty(input)) {
+    const maxUsage = PASSWORDS[input];
+    passwordUsed = input;
+
+    if (maxUsage !== null && totalSubmissions >= maxUsage) {
+      error.innerHTML = '<i class="fas fa-lock"></i> This password has expired.';
       error.classList.remove("hidden");
       return;
     }
-    usageMap[input] = used + 1;
-    localStorage.setItem('password_usage', JSON.stringify(usageMap));
+
+    localStorage.setItem("access_granted", "true");
+    localStorage.setItem("access_password", input);
+    document.getElementById("password-gate").style.display = "none";
+    document.getElementById("protected-content").style.display = "block";
+  } else {
+    error.innerHTML = '<i class="fas fa-exclamation-circle"></i> Incorrect password.';
+    error.classList.remove("hidden");
   }
-
-  localStorage.setItem("access_granted", "true");
-  localStorage.setItem("access_password", input);
-
-  document.getElementById("password-gate").style.display = "none";
-  document.getElementById("protected-content").style.display = "block";
 }
 
-// --- WALLET FORM LOGIC ---
+// Form logic
 function initWalletForm() {
   const form = document.getElementById("airdrop-form");
   const feedback = document.getElementById("feedback");
@@ -79,10 +66,11 @@ function initWalletForm() {
   const tweetBtn = document.getElementById("tweet-btn");
   const walletInput = document.getElementById("wallet");
 
-  const submitted = localStorage.getItem("wallet_submitted");
-  const userNumber = localStorage.getItem("wallet_number");
+  const ua = navigator.userAgent;
+  const now = () => new Date().toISOString();
 
-  if (submitted === "true" && userNumber) {
+  if (localStorage.getItem("wallet_submitted") === "true") {
+    const userNumber = localStorage.getItem("wallet_number");
     form.style.display = "none";
     feedback.classList.remove("hidden");
     message.innerHTML = `<i class="fas fa-circle-check"></i> Welcome back, Hypeman #${userNumber}. Your wallet was already submitted.`;
@@ -105,34 +93,19 @@ function initWalletForm() {
       spinner.classList.add("hidden");
 
       if (isValid) {
-        const assignedNumber = totalSubmissions + 1;
-
-        message.innerHTML = `<i class="fas fa-check-circle"></i> Wallet submitted! You’re Hypeman #${assignedNumber}. Check back soon to claim your <strong>HYPEMAN NFT</strong>.`;
+        const userNumber = totalSubmissions + 1;
+        message.innerHTML = `<i class="fas fa-check-circle"></i> Wallet submitted! You’re Hypeman #${userNumber}.<br><strong>Check back soon to claim your HYPEMAN NFT.</strong>`;
         tweetBtn.classList.remove("hidden");
 
         localStorage.setItem("wallet_submitted", "true");
         localStorage.setItem("wallet_value", wallet);
-        localStorage.setItem("wallet_number", assignedNumber);
-
+        localStorage.setItem("wallet_number", userNumber);
         form.style.display = "none";
 
-        logToSheet({
-          wallet,
-          timestamp: now(),
-          userAgent: ua,
-          status: "success"
-        });
+        logToSheet({ wallet, timestamp: now(), userAgent: ua, status: "success", passwordUsed });
       } else {
-        message.innerHTML = `<i class="fas fa-times-circle"></i> Invalid wallet. Please input a valid wallet address.`;
-        tweetBtn.classList.add("hidden");
-
-        logToSheet({
-          wallet,
-          timestamp: now(),
-          userAgent: ua,
-          status: "fail"
-        });
-
+        message.innerHTML = `<i class="fas fa-times-circle"></i> Invalid wallet. Please input valid wallet address.`;
+        logToSheet({ wallet, timestamp: now(), userAgent: ua, status: "fail", passwordUsed });
         setTimeout(() => feedback.classList.add("hidden"), 6000);
       }
     }, 1500);
@@ -145,18 +118,39 @@ function initWalletForm() {
   });
 }
 
-// --- INIT ---
+// Submit to SheetDB
+function logToSheet(data) {
+  fetch(SHEETDB_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ data: [data] })
+  }).catch(err => console.error("SheetDB error:", err));
+}
+
+// On Page Load
 window.addEventListener("DOMContentLoaded", async () => {
   await fetchSubmissionCount();
 
+  const passwordGate = document.getElementById("password-gate");
+  const protectedContent = document.getElementById("protected-content");
+
+  // Show the correct section based on localStorage
   if (localStorage.getItem("access_granted") === "true") {
-    document.getElementById("password-gate").style.display = "none";
-    document.getElementById("protected-content").style.display = "block";
+    passwordGate.style.display = "none";
+    protectedContent.style.display = "block";
+  } else {
+    passwordGate.style.display = "block";
+    protectedContent.style.display = "none";
   }
 
-  // Attach password submit via Enter key
-  document.getElementById("password-form").addEventListener("submit", checkPassword);
+  // Allow pressing Enter to submit password
+  const passwordInput = document.getElementById("access-password");
+  passwordInput.addEventListener("keypress", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      checkPassword();
+    }
+  });
 
-  // Initialize wallet submission form
   initWalletForm();
 });
