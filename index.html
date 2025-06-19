@@ -7,34 +7,45 @@
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-  <link rel="icon" href="img/icon.png" type="image/x-png" href="img/icon.png">
+  <link rel="icon" href="img/icon.png" type="image/x-png">
   <script defer src="script.js"></script>
-<meta property="og:title" content="HYPERBALL Airdrop" />
-<meta property="og:description" content="Apply for the HYPERBALL NFT and token airdrop program." />
-<meta property="og:image" content="https://hyperlinkairdrop.netlify.app/img/icon.png" />
-<meta property="og:url" content="https://hyperlinkairdrop.netlify.app" />
-<meta property="og:type" content="website" />
-<meta name="twitter:card" content="summary_large_image" />
-<meta name="twitter:title" content="HYPERBALL Airdrop" />
-<meta name="twitter:description" content="Apply for the HYPERBALL NFT and token airdrop program." />
-<meta name="twitter:image" content="https://hyperlinkairdrop.netlify.app/img/icon.png" />
+  <meta property="og:title" content="HYPERBALL Airdrop" />
+  <meta property="og:description" content="Apply for the HYPERBALL NFT and token airdrop program." />
+  <meta property="og:image" content="https://hyperlinkairdrop.netlify.app/img/icon.png" />
+  <meta property="og:url" content="https://hyperlinkairdrop.netlify.app" />
+  <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="HYPERBALL Airdrop" />
+  <meta name="twitter:description" content="Apply for the HYPERBALL NFT and token airdrop program." />
+  <meta name="twitter:image" content="https://hyperlinkairdrop.netlify.app/img/icon.png" />
 </head>
 <body>
-  <div class="container">
+  <div class="glass-card" id="password-gate">
+    <form id="password-form">
+      <h2>Enter Access Code</h2>
+      <input type="password" id="access-password" placeholder="Access code..." required />
+      <button type="submit">Unlock</button>
+      <p id="password-error" class="message hidden" style="color: #ff5f5f;"></p>
+    </form>
+  </div>
+
+
+  <div class="container" id="protected-content" style="display: none;">
     <div class="glass-card">
       <h2>HYPEMAN APPLICATION</h2>
+      <p id="submission-count" class="powered" style="margin-bottom: 10px;"></p>
       <form id="airdrop-form">
         <label for="wallet">Enter your EVM wallet address</label>
         <input type="text" id="wallet" name="wallet" placeholder="0x..." required maxlength="50">
         <button type="submit">Submit Wallet</button>
       </form>
-  <div id="feedback" class="hidden">
-    <div class="spinner hidden"></div>
-    <p class="message"></p>
-    <button id="tweet-btn" class="hidden">
-      <img src="img/twitter-icon.png" class="icon"> Tweet your submission
-    </button>
-  </div>
+      <div id="feedback" class="hidden">
+        <!--<div class="spinner hidden"></div>-->
+        <p class="message"></p>
+        <button id="tweet-btn" class="hidden">
+          <img src="img/twitter-icon.png" class="icon"> Tweet your submission
+        </button>
+      </div>
       <p class="powered">Powered by HYPERBALL</p>
     </div>
   </div>
