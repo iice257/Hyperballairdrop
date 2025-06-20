@@ -28,18 +28,24 @@
       font-size: 1.4rem;
       margin-bottom: 16px;
     }
-    table {
+      table {
       width: 100%;
-      min-width: 500px;
       border-collapse: collapse;
+      table-layout: fixed;
     }
     th, td {
       padding: 10px 12px;
       border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      text-align: left;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
     th {
       color: #0f0;
+      font-weight: 600;
     }
+
     .input-row {
       display: flex;
       flex-wrap: wrap;
