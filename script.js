@@ -1,4 +1,4 @@
-const SHEETDB_URL = "https://sheetdb.io/api/v1/zponyo90pqa3p";
+const "https://sheetdb.io/api/v1/zponyo90pqa3p" = "https://sheetdb.io/api/v1/zponyo90pqa3p";
 
 // --- CONFIG ---
 const PASSWORDS = {
@@ -16,7 +16,7 @@ const ua = navigator.userAgent;
 
 async function fetchSubmissionCount() {
   try {
-    const res = await fetch(SHEETDB_URL);
+    const res = await fetch("https://sheetdb.io/api/v1/zponyo90pqa3p");
     const data = await res.json();
     totalSubmissions = data.length;
 
@@ -30,7 +30,7 @@ async function fetchSubmissionCount() {
 }
 
 function logToSheet(data) {
-  fetch(SHEETDB_URL, {
+  fetch("https://sheetdb.io/api/v1/zponyo90pqa3p", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ data: [data] })
@@ -99,39 +99,46 @@ function initWalletForm() {
     message.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Verifying wallet...`;
 
     setTimeout(() => {
-      if (isValid) {
-        const assignedNumber = totalSubmissions + 1;
-        const password = localStorage.getItem("access_password") || "unknown";
+ if (isValid) {
+  const assignedNumber = totalSubmissions + 1;
 
-        message.innerHTML = `<i class="fas fa-check-circle"></i> Wallet submitted! You’re Hypeman #${assignedNumber}. Check back soon to claim your <strong>HYPEMAN NFT</strong>.`;
-        tweetBtn.classList.remove("hidden");
+  message.innerHTML = `<i class="fas fa-check-circle"></i> Wallet submitted! You’re Hypeman #${assignedNumber}. Check back soon to claim your <strong>HYPEMAN NFT</strong>.`;
+  tweetBtn.classList.remove("hidden");
 
-        localStorage.setItem("wallet_submitted", "true");
-        localStorage.setItem("wallet_value", wallet);
-        localStorage.setItem("wallet_number", assignedNumber);
+  localStorage.setItem("wallet_submitted", "true");
+  localStorage.setItem("wallet_value", wallet);
+  localStorage.setItem("wallet_number", assignedNumber);
 
-        form.style.display = "none";
+  form.style.display = "none";
 
-        logToSheet({
-          wallet,
-          timestamp: now(),
-          userAgent: ua,
-          status: "success",
-          password
-        });
+  const currentPassword = localStorage.getItem("access_password") || "unknown";
+
+  logToSheet({
+    wallet,
+    timestamp: now(),
+    userAgent: ua,
+    status: "success",
+    password: currentPassword  // ✅ This is new
+  });
+}
+
       } else {
-        message.innerHTML = `<i class="fas fa-times-circle"></i> Invalid wallet. Please input a valid wallet address.`;
-        tweetBtn.classList.add("hidden");
+  message.innerHTML = `<i class="fas fa-times-circle"></i> Invalid wallet. Please input a valid wallet address.`;
+  tweetBtn.classList.add("hidden");
 
-        logToSheet({
-          wallet,
-          timestamp: now(),
-          userAgent: ua,
-          status: "fail"
-        });
+  const currentPassword = localStorage.getItem("access_password") || "unknown";
 
-        setTimeout(() => feedback.classList.add("hidden"), 6000);
-      }
+  logToSheet({
+    wallet,
+    timestamp: now(),
+    userAgent: ua,
+    status: "fail",
+    password: currentPassword  // ✅ Include this here too
+  });
+
+  setTimeout(() => feedback.classList.add("hidden"), 6000);
+}
+
     }, 1500);
   });
 
