@@ -2,23 +2,17 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>HYPERBALL Admin Dashboard</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HYPERBALL Admin Dashboard</title>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
     body {
       font-family: 'Space Grotesk', sans-serif;
       background: #0a0a0f;
       color: #fff;
       padding: 20px;
       max-width: 100%;
-      overflow-x: hidden;
     }
     .glass {
       background: rgba(255, 255, 255, 0.05);
@@ -28,7 +22,6 @@
       backdrop-filter: blur(16px);
       border: 1.5px solid rgba(255, 255, 255, 0.1);
       box-shadow: 0 0 20px rgba(0, 255, 128, 0.2);
-      width: 100%;
       overflow-x: auto;
     }
     h2 {
@@ -37,57 +30,33 @@
     }
     table {
       width: 100%;
-      border-collapse: collapse;
       min-width: 500px;
+      border-collapse: collapse;
     }
     th, td {
       padding: 10px 12px;
       border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-      text-align: left;
-      font-size: 0.9rem;
     }
     th {
       color: #0f0;
     }
-    .download-btn, .add-btn {
-      margin-top: 12px;
-      padding: 12px 20px;
-      border-radius: 10px;
-      border: none;
-      background: rgba(0, 255, 128, 0.2);
-      color: #fff;
-      cursor: pointer;
-      font-weight: bold;
-      transition: background 0.2s ease;
-    }
-    .download-btn:hover, .add-btn:hover {
-      background: rgba(0, 255, 128, 0.3);
-    }
     .input-row {
-      margin-top: 12px;
       display: flex;
       flex-wrap: wrap;
       gap: 10px;
-      align-items: center;
+      margin-top: 12px;
     }
-    .input-row input {
-      flex: 1 1 120px;
+    .input-row input, .input-row button {
       padding: 10px;
       border-radius: 8px;
-      border: none;
       background: rgba(255, 255, 255, 0.1);
       color: #fff;
+      border: none;
     }
-    @media (max-width: 600px) {
-      h2 {
-        font-size: 1.2rem;
-      }
-      table {
-        font-size: 0.8rem;
-      }
-      .download-btn, .add-btn {
-        width: 100%;
-      }
+    .input-row button {
+      background: rgba(0, 255, 128, 0.2);
+      font-weight: bold;
+      cursor: pointer;
     }
   </style>
 </head>
@@ -105,105 +74,86 @@
       </thead>
       <tbody id="password-usage"></tbody>
     </table>
-    <div class="input-row">
-      <input type="text" id="new-password" placeholder="Password (ALL CAPS)" />
-      <input type="number" id="new-limit" placeholder="Usage Limit (-1 = unlimited)" />
-      <button class="add-btn" onclick="addPassword()">Add Password</button>
-    </div>
   </div>
 
   <div class="glass">
     <h2>🧾 Wallet Submissions</h2>
-    <button class="download-btn" onclick="downloadCSV()">⬇ Download CSV</button>
+    <button onclick="downloadCSV()">⬇ Download CSV</button>
     <table>
       <thead>
-        <tr><th>#</th><th>Wallet</th><th>Time</th><th>Status</th></tr>
+        <tr><th>#</th><th>Wallet</th><th>Time</th><th>Status</th><th>Password</th></tr>
       </thead>
       <tbody id="submission-table"></tbody>
     </table>
   </div>
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import {
-      getFirestore, collection, getDocs, setDoc, doc
-    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-
-    const firebaseConfig = {
-      apiKey: "AIza...", // REPLACE with real API keys
-      authDomain: "hyperball-airdrop.firebaseapp.com",
-      projectId: "hyperball-airdrop",
-      storageBucket: "hyperball-airdrop.appspot.com",
-      messagingSenderId: "123456",
-      appId: "1:123456:web:abc123"
+  <script>
+    const WALLET_URL = "https://sheetdb.io/api/v1/zponyo90pqa3p";
+    const PASSWORDS = {
+      hball: null,
+      pavillon: 10,
+      ordi: 30,
+      africandao: 40
     };
-
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
 
     let submissionCSV = [];
 
     async function loadDashboard() {
-      // Load submission count
-      try {
-        const statsDoc = await getDocs(collection(db, "meta"));
-        let total = 0;
-        statsDoc.forEach(docu => {
-          if (docu.id === "stats") {
-            total = docu.data().totalSubmissions || 0;
-          }
-        });
-        document.getElementById("total-submissions").textContent = total;
-      } catch {
-        document.getElementById("total-submissions").textContent = "0";
-      }
+      const walletRes = await fetch(WALLET_URL);
+      const wallets = await walletRes.json();
 
-      // Load password usage
-      const passSnap = await getDocs(collection(db, "passwords"));
-      const passTable = document.getElementById("password-usage");
-      passTable.innerHTML = "";
-      passSnap.forEach(doc => {
-        const { used = 0, max = -1 } = doc.data();
-        const remaining = max < 0 ? "∞" : Math.max(0, max - used);
-        passTable.innerHTML += `<tr>
-          <td>${doc.id}</td>
-          <td>${used}</td>
-          <td>${max < 0 ? "∞" : max}</td>
-          <td>${remaining}</td>
-        </tr>`;
+      // Count per password
+      const usageMap = {};
+      wallets.forEach(entry => {
+        const pass = (entry.password || "unknown").toLowerCase();
+        usageMap[pass] = (usageMap[pass] || 0) + 1;
       });
 
-      // Load wallet submissions
-      const subsSnap = await getDocs(collection(db, "submissions"));
-      const subsTable = document.getElementById("submission-table");
-      let index = 1;
-      submissionCSV = [["#", "Wallet", "Timestamp", "Status"]];
-      subsSnap.forEach(doc => {
-        const { wallet, timestamp, status } = doc.data();
-        subsTable.innerHTML += `<tr>
-          <td>${index}</td>
-          <td>${wallet}</td>
-          <td>${timestamp}</td>
-          <td>${status}</td>
-        </tr>`;
-        submissionCSV.push([index, wallet, timestamp, status]);
-        index++;
+      // Update totals
+      document.getElementById("total-submissions").textContent = wallets.length;
+
+      // Password usage table
+      const tbody = document.getElementById("password-usage");
+      Object.entries(PASSWORDS).forEach(([key, max]) => {
+        const used = usageMap[key] || 0;
+        const remaining = max === null ? "∞" : Math.max(0, max - used);
+        tbody.innerHTML += `
+          <tr>
+            <td>${key}</td>
+            <td>${used}</td>
+            <td>${max === null ? "∞" : max}</td>
+            <td>${remaining}</td>
+          </tr>
+        `;
       });
-    }
 
-    async function addPassword() {
-      const key = document.getElementById("new-password").value.trim().toUpperCase();
-      const max = parseInt(document.getElementById("new-limit").value);
-      if (!key || isNaN(max)) return alert("Enter valid password and number");
-
-      await setDoc(doc(db, "passwords", key), { max: max, used: 0 });
-      alert(`Password "${key}" added successfully!`);
-      loadDashboard();
+      // Wallet table
+      const submissionTable = document.getElementById("submission-table");
+      submissionCSV = [["#", "Wallet", "Timestamp", "Status", "Password"]];
+      wallets.forEach((entry, i) => {
+        const row = [
+          i + 1,
+          entry.wallet,
+          entry.timestamp,
+          entry.status,
+          entry.password || "-"
+        ];
+        submissionCSV.push(row);
+        submissionTable.innerHTML += `
+          <tr>
+            <td>${row[0]}</td>
+            <td>${row[1]}</td>
+            <td>${row[2]}</td>
+            <td>${row[3]}</td>
+            <td>${row[4]}</td>
+          </tr>
+        `;
+      });
     }
 
     function downloadCSV() {
       const csv = submissionCSV.map(r => r.join(",")).join("\n");
-      const blob = new Blob([csv], { type: 'text/csv' });
+      const blob = new Blob([csv], { type: "text/csv" });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
