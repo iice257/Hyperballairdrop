@@ -1,53 +1,124 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>HYPERBALL Airdrop</title>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-  <link rel="icon" href="img/icon.png" type="image/x-png">
-  <script defer src="script.js"></script>
-  <meta property="og:title" content="HYPERBALL Airdrop" />
-  <meta property="og:description" content="Apply for the HYPERBALL NFT and token airdrop program." />
-  <meta property="og:image" content="https://hyperlinkairdrop.netlify.app/img/icon.png" />
-  <meta property="og:url" content="https://hyperlinkairdrop.netlify.app" />
-  <meta property="og:type" content="website" />
-  <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="HYPERBALL Airdrop" />
-  <meta name="twitter:description" content="Apply for the HYPERBALL NFT and token airdrop program." />
-  <meta name="twitter:image" content="https://hyperlinkairdrop.netlify.app/img/icon.png" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Space Grotesk', sans-serif;
+      background: #0a0a0f url('img/the background.jpg') no-repeat center center fixed;
+      background-size: cover;
+      color: white;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+    }
+    .card {
+      background: rgba(255,255,255,0.05);
+      backdrop-filter: blur(10px);
+      border-radius: 16px;
+      padding: 30px;
+      text-align: center;
+      width: 90%;
+      max-width: 400px;
+      box-shadow: 0 0 20px rgba(0, 255, 128, 0.2);
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+    input, button {
+      width: 100%;
+      margin: 10px 0;
+      padding: 14px;
+      border: none;
+      border-radius: 10px;
+      font-size: 1rem;
+    }
+    input {
+      background: rgba(255,255,255,0.1);
+      color: white;
+    }
+    button {
+      background: rgba(0,255,128,0.2);
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .hidden { display: none; }
+    .msg { margin-top: 10px; font-size: 0.9rem; }
+  </style>
 </head>
 <body>
-  <div class="glass-card" id="password-gate">
-    <form id="password-form">
-      <h2>Enter Access Code</h2>
-      <input type="password" id="access-password" placeholder="Access code..." required />
-      <button type="submit">Unlock</button>
-      <p id="password-error" class="message hidden" style="color: #ff5f5f;"></p>
-    </form>
+
+  <!-- Password gate -->
+  <div class="card" id="password-gate">
+    <h2>🔐 Enter Access Code</h2>
+    <input type="password" id="access-input" placeholder="Access code" />
+    <button onclick="checkPassword()">Enter</button>
+    <div id="pass-msg" class="msg"></div>
   </div>
 
-
-  <div class="container" id="protected-content" style="display: none;">
-    <div class="glass-card">
-      <h2>HYPEMAN APPLICATION</h2>
-      <p id="submission-count" class="powered" style="margin-bottom: 10px;"></p>
-      <form id="airdrop-form">
-        <label for="wallet">Enter your EVM wallet address</label>
-        <input type="text" id="wallet" name="wallet" placeholder="0x..." required maxlength="50">
-        <button type="submit">Submit Wallet</button>
-      </form>
-      <div id="feedback" class="hidden">
-        <!--<div class="spinner hidden"></div>-->
-        <p class="message"></p>
-        <button id="tweet-btn" class="hidden">
-          <img src="img/twitter-icon.png" class="icon"> Tweet your submission
-        </button>
-      </div>
-      <p class="powered">Powered by HYPERBALL</p>
-    </div>
+  <!-- Wallet form -->
+  <div class="card hidden" id="wallet-form">
+    <h2>🎯 Submit Wallet</h2>
+    <input type="text" id="wallet-input" placeholder="0x..." />
+    <button onclick="submitWallet()">Submit</button>
+    <div id="wallet-msg" class="msg"></div>
   </div>
+
+  <script>
+    const SHEETDB_URL = "https://sheetdb.io/api/v1/zponyo90pqa3p";
+    const ACCESS_PASSWORD = "hball";
+
+    function checkPassword() {
+      const input = document.getElementById("access-input").value.trim().toLowerCase();
+      const msg = document.getElementById("pass-msg");
+
+      if (input === ACCESS_PASSWORD) {
+        document.getElementById("password-gate").classList.add("hidden");
+        document.getElementById("wallet-form").classList.remove("hidden");
+        localStorage.setItem("access_password", input);
+      } else {
+        msg.textContent = "❌ Incorrect access code.";
+        msg.style.color = "#ff6a6a";
+      }
+    }
+
+    function submitWallet() {
+      const wallet = document.getElementById("wallet-input").value.trim();
+      const msg = document.getElementById("wallet-msg");
+      const password = localStorage.getItem("access_password") || "unknown";
+
+      if (!wallet.startsWith("0x") || wallet.length < 12) {
+        msg.textContent = "❌ Invalid wallet address.";
+        msg.style.color = "#ff6a6a";
+        return;
+      }
+
+      fetch(SHEETDB_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          data: [{
+            wallet: wallet,
+            timestamp: new Date().toISOString(),
+            userAgent: navigator.userAgent,
+            password: password
+          }]
+        })
+      }).then(() => {
+        msg.textContent = "✅ Wallet submitted successfully!";
+        msg.style.color = "#00ff94";
+      }).catch(() => {
+        msg.textContent = "⚠️ Error submitting wallet.";
+        msg.style.color = "#ff6a6a";
+      });
+    }
+  </script>
+
 </body>
 </html>
