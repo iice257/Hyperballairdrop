@@ -3,6 +3,7 @@
   padding: 0;
   box-sizing: border-box;
 }
+
 body, html {
   height: 100%;
   line-height: 1.6;
@@ -13,31 +14,33 @@ body, html {
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-direction: column;
 }
+
 .container {
   width: 90%;
   max-width: 600px;
   margin: auto;
 }
+
 .glass-card {
   background: rgba(255, 255, 255, 0.05);
   border-radius: 24px;
   padding: 40px;
-  margin: 20px;
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   box-shadow: 0 0 40px rgba(0, 255, 128, 0.2);
   border: 1.5px solid rgba(255, 255, 255, 0.15);
   text-align: center;
 }
+
 label {
   display: block;
   margin-bottom: 15px;
   font-size: 0.9rem;
   color: #ccc;
 }
-input[type="text"], input[type="password"] {
+
+input[type="text"] {
   width: 100%;
   padding: 18px;
   margin-bottom: 20px;
@@ -47,9 +50,11 @@ input[type="text"], input[type="password"] {
   background: rgba(255, 255, 255, 0.07);
   color: #fff;
 }
+
 input::placeholder {
   color: #aaa;
 }
+
 button {
   padding: 16px 20px;
   border: none;
@@ -62,35 +67,44 @@ button {
   box-shadow: 0 0 20px rgba(0, 255, 128, 0.3);
   transition: all 0.3s ease;
 }
+
 button:hover {
   background: rgba(0, 255, 128, 0.3);
   transform: scale(1.03);
 }
+
 .powered {
   margin-top: 30px;
   font-size: 0.75rem;
   color: #888;
 }
+
 #feedback {
   margin-top: 20px;
 }
+
 .message {
   font-size: 1rem;
   margin-bottom: 10px;
 }
+
 .message i {
   margin-right: 10px;
   color: #00ff94;
 }
+
 .hidden {
   display: none;
 }
+
 .icon {
   width: 16px;
   height: 16px;
   vertical-align: middle;
   margin-right: 6px;
 }
+
+
 .spinner {
   border: 3px solid rgba(255, 255, 255, 0.2);
   border-top: 3px solid #00ff94;
@@ -100,11 +114,8 @@ button:hover {
   animation: spin 0.8s linear infinite;
   margin: 10px auto;
 }
+
 @keyframes spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
-}
-
-.message {
-  line-height: 1.8;
 }
