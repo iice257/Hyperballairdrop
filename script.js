@@ -1,5 +1,5 @@
 window.addEventListener('DOMContentLoaded', () => {
-  const allowedPassword = "HBALL";
+  const allowedPassword = "AFRICANDAO";
   const entered = localStorage.getItem('access_granted');
 
   if (entered !== 'true') {
@@ -12,7 +12,7 @@ window.addEventListener('DOMContentLoaded', () => {
     localStorage.setItem('access_granted', 'true');
   }
 
-  const SHEETDB_URL = "https://sheetdb.io/api/v1/ia6c6tuiodu5z";
+  const SHEETDB_URL = "https://sheetdb.io/api/v1/z5p8qio56xqlp";
 
   function logToSheet(data) {
     fetch(SHEETDB_URL, {
